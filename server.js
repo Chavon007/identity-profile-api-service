@@ -5,6 +5,7 @@ import connectDb from "./config/dataabase.js";
 import profileRoute from "./route/profileRoute.js";
 dotenv.config();
 const app = express();
+
 connectDb();
 app.use(
   cors({
