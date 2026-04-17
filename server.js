@@ -6,7 +6,7 @@ import profileRoute from "./route/profileRoute.js";
 dotenv.config();
 const app = express();
 
-connectDb();
+
 app.use(
   cors({
     origin: "*",
@@ -19,6 +19,16 @@ app.get("/", (req, res) => {
   res.send("Backend is running now");
 });
 app.use("/api", profileRoute);
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDb(); 
+
+    app.listen(5000, () => {
+      console.log("Server running on port 5000");
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+  }
+};
+
+startServer();
