@@ -7,18 +7,28 @@ export const createProfile = async (req, res) => {
   try {
     const { name } = req.body;
 
-    if (!name) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Name can not be empty" });
+    if (name === undefined) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing name",
+      });
     }
-    if (typeof name !== "string" || name.trim() === "") {
-      return res
-        .status(422)
-        .json({ status: "error", message: "Name must be a string" });
+
+    if (typeof name !== "string") {
+      return res.status(422).json({
+        status: "error",
+        message: "Invalid type",
+      });
+    }
+
+    if (name.trim() === "") {
+      return res.status(400).json({
+        status: "error",
+        message: "Name can not be empty",
+      });
     }
     const checkExistingName = await profileModel.findOne({
-      name: name.toLowerCase(),
+      name: name.trim().toLowerCase(),
     });
     if (checkExistingName) {
       return res.status(200).json({
@@ -37,9 +47,10 @@ export const createProfile = async (req, res) => {
       });
     }
     if (mainProfile.gender === null || mainProfile.count === 0) {
-      return res
-        .status(502)
-        .json({ status: "error", message: "Gender can't be null or 0" });
+      return res.status(502).json({
+        status: "error",
+        message: "Genderize returned an invalid response",
+      });
     }
     if (!mainProfile.country || mainProfile.country.length === 0) {
       return res.status(502).json({
@@ -60,16 +71,13 @@ export const createProfile = async (req, res) => {
     }
 
     const countries = mainProfile.country;
-    if (countries.length === 0) {
-      return "unknown";
-    }
 
     const topCountries = countries.reduce((max, current) =>
       current.probability > max.probability ? current : max,
     );
     const newProfile = await profileModel.create({
       id: uuidv7(),
-      name: name.toLowerCase(),
+      name: name.trim().toLowerCase(),
       gender: mainProfile.gender,
       gender_probability: mainProfile.probability,
       sample_size: mainProfile.count,
@@ -82,7 +90,6 @@ export const createProfile = async (req, res) => {
 
     res.status(201).json({
       status: "success",
-      message: "Profile created successfully",
       data: newProfile,
     });
   } catch (err) {
@@ -130,7 +137,7 @@ export const getAllProfile = async (req, res) => {
 export const getOneProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    const profile = await profileModel.findById({ id: id });
+    const profile = await profileModel.findOne({ id });
     if (!profile) {
       return res
         .status(404)
@@ -147,11 +154,14 @@ export const deleteProfile = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const remove = await profileModel.findByIdAndDelete(id);
+    const remove = await profileModel.findOneAndDelete({ id });
     if (!remove) {
-      res.status(404).json({ status: "error", message: "No profile found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Profile not found" });
     }
-    res.sendStatus(204);
+
+    return res.sendStatus(204);
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
