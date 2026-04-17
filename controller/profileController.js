@@ -17,7 +17,9 @@ export const createProfile = async (req, res) => {
         .status(422)
         .json({ status: "error", message: "Name must be a string" });
     }
-    const checkExistingName = await profileModel.findOne({ name });
+    const checkExistingName = await profileModel.findOne({
+      name: name.toLowerCase(),
+    });
     if (checkExistingName) {
       return res.status(200).json({
         status: "success",
@@ -50,7 +52,7 @@ export const createProfile = async (req, res) => {
     if (mainProfile.age <= 12) {
       age_group = "child";
     } else if (mainProfile.age <= 19) {
-      age_group = "teenage";
+      age_group = "teenager";
     } else if (mainProfile.age <= 59) {
       age_group = "adult";
     } else {
@@ -128,7 +130,7 @@ export const getAllProfile = async (req, res) => {
 export const getOneProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    const profile = await profileModel.findById(id);
+    const profile = await profileModel.findById({ id: id });
     if (!profile) {
       return res
         .status(404)
