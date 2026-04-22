@@ -4,6 +4,7 @@ import {
   getAllProfile,
   deleteProfile,
   getOneProfile,
+  serachProfile,
 } from "../controller/profileController.js";
 
 const router = express.Router();
@@ -16,4 +17,6 @@ router.delete("/profiles/:id", deleteProfile);
 router.get("/profiles/:id", getOneProfile);
 // get all profile
 router.get("/profiles", getAllProfile);
+// serach profile with key words
+router.get("/profiles/search", serachProfile);
 export default router;

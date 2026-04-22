@@ -1,6 +1,7 @@
 import profileModel from "../model/profileModel.js";
 import { getProfile } from "../service/profileService.js";
 import { v7 as uuidv7 } from "uuid";
+import { parseSearch } from "../service/searchparse.js";
 
 // Create profile
 export const createProfile = async (req, res) => {
@@ -100,7 +101,19 @@ export const createProfile = async (req, res) => {
 // Get all profile
 export const getAllProfile = async (req, res) => {
   try {
-    const { gender, country_id, age_group } = req.query;
+    const {
+      gender,
+      country_id,
+      age_group,
+      min_age,
+      max_age,
+      sort_by,
+      order,
+      probability,
+      min_country_probability,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     const query = {};
 
@@ -114,20 +127,61 @@ export const getAllProfile = async (req, res) => {
       query.age_group = age_group.toLowerCase();
     }
 
-    const getProfile = await profileModel.find(query);
+    if (min_age || max_age) {
+      query.age = {};
+      if (min_age) query.age.$gte = Number(min_age);
+      if (max_age) query.age.$lte = Number(max_age);
+    }
+
+    if (probability) {
+      query.gender_probability = { $gte: Number(probabilityy) };
+    }
+    if (min_country_probability) {
+      query.country_probability = { $gte: Number(min_country_probability) };
+    }
+
+    // sorting
+    const allowedSortFields = ["age", "created_at", "gender_probability"];
+    const sortedFields = allowedSortFields.includes(sort_by)
+      ? sort_by
+      : "created_at";
+
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortObj = { [sortedFields]: sortOrder };
+
+    // pagination
+
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const skips = (pageNum - 1) * limitNum;
+
+    const total = await profileModel.countDocuments(query);
+    const getProfile = await profileModel
+      .find(query)
+      .sort(sortObj)
+      .skip(skips)
+      .limit(limitNum);
 
     const formatted = getProfile.map((profile) => ({
       id: profile.id,
       name: profile.name,
       gender: profile.gender,
+      gender_probability: profile.gender_probability,
       age: profile.age,
       age_group: profile.age_group,
       country_id: profile.country_id,
+      country_name: profile.country_name,
+      country_probability: profile.country_probability,
+      created_at: profile.created_at,
     }));
 
-    res
-      .status(200)
-      .json({ status: "success", count: formatted.length, data: formatted });
+    res.status(200).json({
+      status: "success",
+      page: pageNum,
+      limit: limitNum,
+      data: formatted,
+      total,
+    });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
@@ -162,6 +216,59 @@ export const deleteProfile = async (req, res) => {
     }
 
     return res.sendStatus(204);
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+export const serachProfile = async (req, res) => {
+  try {
+    const { q, page = 1, limit = 10 } = req.query;
+
+    if (!q || q.trim() === "") {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Missing or empty parameter" });
+    }
+
+    const filter = parseSearch(q);
+
+    if (!filter) {
+      return res
+        .status(200)
+        .json({ status: "error", message: "Unable to interpret query" });
+    }
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+    const skips = (pageNum - 1) * limitNum;
+
+    const total = await profileModel.countDocuments(filter);
+    const getProfile = await profileModel
+      .find(filter)
+      .sort(sortObj)
+      .skip(skips)
+      .limit(limitNum);
+
+    const formatted = getProfile.map((profile) => ({
+      id: profile.id,
+      name: profile.name,
+      gender: profile.gender,
+      gender_probability: profile.gender_probability,
+      age: profile.age,
+      age_group: profile.age_group,
+      country_id: profile.country_id,
+      country_name: profile.country_name,
+      country_probability: profile.country_probability,
+      created_at: profile.created_at,
+    }));
+
+    res.status(200).json({
+      status: "success",
+      page: pageNum,
+      limit: limitNum,
+      data: formatted,
+      total,
+    });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }

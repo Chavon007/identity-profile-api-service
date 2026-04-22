@@ -18,18 +18,22 @@ const profileSchema = new mongoose.Schema({
   },
   id: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
   },
   sample_size: {
     type: Number,
-    required: true,
+    required: false,
   },
   age: {
     type: Number,
     required: true,
   },
   country_id: {
+    type: String,
+    required: true,
+  },
+  country_name: {
     type: String,
     required: true,
   },
