@@ -245,7 +245,6 @@ export const serachProfile = async (req, res) => {
     const total = await profileModel.countDocuments(filter);
     const getProfile = await profileModel
       .find(filter)
-      .sort(sortObj)
       .skip(skips)
       .limit(limitNum);
 
