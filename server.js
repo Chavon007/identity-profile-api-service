@@ -3,9 +3,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { connectDb } from "./config/dataabase.js";
 import profileRoute from "./route/profileRoute.js";
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 
+app.use(cookieParser());
 app.use(
   cors({
     origin: "*",
