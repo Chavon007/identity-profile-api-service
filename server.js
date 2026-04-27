@@ -4,6 +4,7 @@ import cors from "cors";
 import { connectDb } from "./config/dataabase.js";
 import profileRoute from "./route/profileRoute.js";
 import cookieParser from "cookie-parser";
+import authRoutes from "./route/authRoute.js";
 dotenv.config();
 const app = express();
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
   res.send("Backend is running now");
 });
 app.use("/api", profileRoute);
+app.use("/auth", authRoutes);
 const startServer = async () => {
   try {
     await connectDb();
