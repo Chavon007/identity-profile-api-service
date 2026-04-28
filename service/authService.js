@@ -1,13 +1,13 @@
 import crypto from "crypto";
 import dotenv from "dotenv";
 import axios from "axios";
-import userModel from "../model/userModel";
+import userModel from "../model/userModel.js";
 import {
   generateToken,
   generateRefreshToken,
   verifyRefreshToken,
-} from "../utlis/token";
-import refreshTokenModel from "../model/refreshTokenModel";
+} from "../utlis/token.js";
+import refreshTokenModel from "../model/refreshTokenModel.js";
 
 dotenv.config();
 const stateStore = new Map();

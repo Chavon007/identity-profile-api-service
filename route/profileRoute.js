@@ -4,7 +4,7 @@ import {
   getAllProfile,
   deleteProfile,
   getOneProfile,
-  serachProfile,
+  serachProfile,exportProfiles
 } from "../controller/profileController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requiredRole } from "../middleware/requiredRole.js";
