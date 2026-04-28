@@ -19,6 +19,12 @@ router.get(
   requiredRole("admin", "analyst"),
   serachProfile,
 );
+router.get(
+  "/profiles/export",
+  authMiddleware,
+  requiredRole("admin", "analyst"),
+  exportProfiles,
+);
 // delete a profile
 router.delete(
   "/profiles/:id",
