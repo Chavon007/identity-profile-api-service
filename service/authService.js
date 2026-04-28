@@ -17,8 +17,8 @@ export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
   stateStore.set(state, true);
 
   const params = new URLSearchParams({
-    client_id: process.env.GITHUB_CLIENT_ID,
-    redirect_uri: process.env.GITHUB_CALLBACK_URL,
+    client_id: process.env.CLIENT_ID,
+    redirect_uri: process.env.CALLBACK_URL,
     scope: "user:email",
     state,
   });
@@ -45,10 +45,10 @@ export const handlecallback = async (code, state) => {
   const tokenResponse = await axios.post(
     "https://github.com/login/oauth/access_token",
     {
-      client_id: process.env.GITHUB_CLIENT_ID,
-      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
       code,
-      redirect_uri: process.env.GITHUB_CALLBACK_URL,
+      redirect_uri: process.env.CALLBACK_URL,
     },
     {
       headers: { Accept: "application/json" },
