@@ -2,7 +2,7 @@ import profileModel from "../model/profileModel.js";
 import { getProfile } from "../service/profileService.js";
 import { v7 as uuidv7 } from "uuid";
 import { parseSearch } from "../service/searchparse.js";
-
+import { parse } from "json2csv";
 // Create profile
 export const createProfile = async (req, res) => {
   try {
@@ -110,6 +110,8 @@ export const getAllProfile = async (req, res) => {
       sort_by,
       order,
       probability,
+      total_page,
+      link,
       min_country_probability,
       page = 1,
       limit = 10,
@@ -134,7 +136,7 @@ export const getAllProfile = async (req, res) => {
     }
 
     if (probability) {
-      query.gender_probability = { $gte: Number(probabilityy) };
+      query.gender_probability = { $gte: Number(probability) };
     }
     if (min_country_probability) {
       query.country_probability = { $gte: Number(min_country_probability) };
@@ -175,18 +177,86 @@ export const getAllProfile = async (req, res) => {
       created_at: profile.created_at,
     }));
 
+    const totalPage = Math.ceil(total / limitNum);
+    const baseUrl = `/api/profiles`;
+    const buildUrl = (p) => `${baseUrl}?page=${p}&limit=${limitNum}`;
+
     res.status(200).json({
       status: "success",
       page: pageNum,
       limit: limitNum,
-      data: formatted,
       total,
+      total_page: totalPage,
+      link: {
+        self: buildUrl(pageNum),
+        next: pageNum < totalPages ? buildUrl(pageNum + 1) : null,
+        prev: pageNum > 1 ? buildUrl(pageNum - 1) : null,
+      },
+      data: formatted,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 };
 
+export const exportProfiles = async (req, res) => {
+  try {
+    const { gender, country_id, age_group, min_age, max_age } = req.query;
+
+    const query = {};
+    if (gender) query.gender = gender.toLowerCase();
+    if (country_id) query.country_id = country_id.toUpperCase();
+    if (age_group) query.age_group = age_group.toLowerCase();
+    if (min_age || max_age) {
+      query.age = {};
+      if (min_age) query.age.$gte = Number(min_age);
+      if (max_age) query.age.$lte = Number(max_age);
+    }
+
+    const profiles = await profileModel.find(query);
+
+    const fields = [
+      "id",
+      "name",
+      "gender",
+      "gender_probability",
+      "age",
+      "age_group",
+      "country_id",
+      "country_name",
+      "country_probability",
+      "created_at",
+    ];
+
+    const csv = parse(
+      profiles.map((p) => ({
+        id: p.id,
+        name: p.name,
+        gender: p.gender,
+        gender_probability: p.gender_probability,
+        age: p.age,
+        age_group: p.age_group,
+        country_id: p.country_id,
+        country_name: p.country_name,
+        country_probability: p.country_probability,
+        created_at: p.created_at,
+      })),
+      { fields },
+    );
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="profiles_${timestamp}.csv"`,
+    );
+
+    return res.status(200).send(csv);
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
 // Get one profile
 export const getOneProfile = async (req, res) => {
   try {

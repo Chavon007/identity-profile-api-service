@@ -1,6 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
 
+
 dotenv.config();
 
 const genderize_API = "https://api.genderize.io";
