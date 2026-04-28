@@ -1,6 +1,6 @@
 import { verifyToken } from "../utlis/token.js";
 
-const authMiddleware = async (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     let token = req.cookies.token;
     if (!token) {

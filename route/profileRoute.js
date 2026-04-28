@@ -6,18 +6,39 @@ import {
   getOneProfile,
   serachProfile,
 } from "../controller/profileController.js";
-
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { requiredRole } from "../middleware/requiredRole.js";
 const router = express.Router();
 
 // create a profile
-router.post("/profiles", createProfile);
+router.post("/profiles", authMiddleware, requiredRole("admin"), createProfile);
 // serach profile with key words
-router.get("/profiles/search", serachProfile);
+router.get(
+  "/profiles/search",
+  authMiddleware,
+  requiredRole("admin", "analyst"),
+  serachProfile,
+);
 // delete a profile
-router.delete("/profiles/:id", deleteProfile);
+router.delete(
+  "/profiles/:id",
+  authMiddleware,
+  requiredRole("admin"),
+  deleteProfile,
+);
 // get one profile
-router.get("/profiles/:id", getOneProfile);
+router.get(
+  "/profiles/:id",
+  authMiddleware,
+  requiredRole("admin", "analyst"),
+  getOneProfile,
+);
 // get all profile
-router.get("/profiles", getAllProfile);
+router.get(
+  "/profiles",
+  authMiddleware,
+  requiredRole("admin", "analyst"),
+  getAllProfile,
+);
 
 export default router;
