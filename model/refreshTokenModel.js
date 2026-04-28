@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const refreshTokenSchema = new mongoose.Schema({
   user_id: {
     type: String,
-    ref: User,
+    ref: "User",
     required: true,
   },
   token_hashed: {

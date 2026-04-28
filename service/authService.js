@@ -2,7 +2,11 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import axios from "axios";
 import userModel from "../model/userModel";
-import { generateToken, generateRefreshToken } from "../utlis/token";
+import {
+  generateToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../utlis/token";
 import refreshTokenModel from "../model/refreshTokenModel";
 
 dotenv.config();
@@ -14,7 +18,7 @@ export const getGithubRedirectUrl = () => {
 
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
-    redirect_url: process.env.GITHUB_CALLBACK_URL,
+    redirect_uri: process.env.GITHUB_CALLBACK_URL,
     scope: "user:email",
     state,
   });
@@ -39,7 +43,7 @@ export const handlecallback = async (code, state) => {
       client_id: process.env.GITHUB_CLIENT_ID,
       client_secret: process.env.GITHUB_CLIENT_SECRET,
       code,
-      redirect_url: process.env.GITHUB_CALLBACK_URL,
+      redirect_uri: process.env.GITHUB_CALLBACK_URL,
     },
     {
       headers: { Accept: "application/json" },
@@ -88,7 +92,7 @@ export const handlecallback = async (code, state) => {
   }
 
   if (!user.is_active) {
-    throw new Error("Account is not active");
+    throw new Error("ACCOUNT_INACTIVE");
   }
 
   //   Generate token for user
@@ -108,5 +112,46 @@ export const handlecallback = async (code, state) => {
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
 
-  return { user, accessToken, refreshTokenModel: newRefreshToken };
+  return { user, accessToken, refreshToken: newRefreshToken };
+};
+
+export const refresh = async (token) => {
+  const decoded = verifyRefreshToken(token);
+  if (!decoded) throw new Error("Invalid or expired refresh token");
+
+  const hashed = crypto.createHash("sha256").update(token).digest("hex");
+  const stored = await refreshTokenModel.findOne({ token_hashed: hashed });
+
+  if (!stored) throw new Error("Refresh token not found or already in used");
+
+  await refreshTokenModel.deleteOne({ _id: stored._id });
+
+  const user = await userModel.findById(decoded.id);
+
+  if (!user || !user.is_active) throw new Error("User not found or inactive");
+
+  //   isssue new pair
+
+  const accessToken = generateToken(user);
+  const newRefreshToken = generateRefreshToken(user);
+
+  const newHashed = crypto
+    .createHash("sha256")
+    .update(newRefreshToken)
+    .digest("hex");
+
+  await refreshTokenModel.create({
+    user_id: user._id,
+    token_hashed: newHashed,
+    expires_at: new Date(Date.now() + 5 * 60 * 1000),
+  });
+
+  return { accessToken, refresh: newRefreshToken };
+};
+
+export const logoutUser = async (token) => {
+  if (!token) throw new Error("No refresh token Provided");
+
+  const hashed = crypto.createHash("sha256").update(token).digest("hex");
+  await refreshTokenModel.deleteOne({ token_hashed: hashed });
 };

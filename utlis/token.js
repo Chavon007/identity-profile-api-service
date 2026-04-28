@@ -30,7 +30,7 @@ export const generateRefreshToken = (user) => {
     {
       id: user.id,
     },
-    process.env.JWT_Refresh_token,
+    process.env.JWT_REFRESH_SECRET,
     {
       expiresIn: "5m",
     },
@@ -40,6 +40,7 @@ export const generateRefreshToken = (user) => {
 export const verifyRefreshToken = (token) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_Refresh_token);
+    return decoded;
   } catch (error) {
     return null;
   }
