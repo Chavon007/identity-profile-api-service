@@ -12,7 +12,7 @@ import refreshTokenModel from "../model/refreshTokenModel";
 dotenv.config();
 const stateStore = new Map();
 
-export const getGithubRedirectUrl = () => {
+export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
   const state = crypto.randomBytes(16).toString("hex");
   stateStore.set(state, true);
 
@@ -22,6 +22,11 @@ export const getGithubRedirectUrl = () => {
     scope: "user:email",
     state,
   });
+
+  if (code_challenge && code_challenge_method) {
+    params.append("code_challenge", code_challenge);
+    params.append("code_challenge_method", code_challenge_method);
+  }
 
   return {
     url: `https://github.com/login/oauth/authorize?${params.toString()}`,

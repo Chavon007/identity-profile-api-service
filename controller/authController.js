@@ -6,7 +6,8 @@ import {
 } from "../service/authService.js";
 
 export const redirectToGitHub = (req, res) => {
-  const { url } = getGithubRedirectUrl();
+  const { code_challenge, code_challenge_method } = req.query;
+  const { url } = getGithubRedirectUrl(code_challenge, code_challenge_method);
   res.redirect(url);
 };
 
