@@ -10,35 +10,56 @@ const csrf = new Csrf();
 
 export const redirectToGitHub = (req, res) => {
   const { code_challenge, code_challenge_method, state } = req.query;
-  const { url } = getGithubRedirectUrl(code_challenge, code_challenge_method, state);
+  const { url } = getGithubRedirectUrl(
+    code_challenge,
+    code_challenge_method,
+    state,
+  );
   res.redirect(url);
 };
 
 export const handleGithubCallback = async (req, res) => {
   try {
-    const { code, state, code_verifier } = req.query;
+    const { code, state, redirect_port } = req.query;
 
-    if (!code) {
-      return res.status(400).json({ status: "error", message: "Missing code" });
+    if (!code || !state) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Missing code or state" });
     }
 
     const { user, accessToken, refreshToken } = await handlecallback(
       code,
       state,
-      code_verifier,
     );
 
-    // CLI flow — code_verifier present, redirect tokens back to local CLI server
-    if (code_verifier) {
+    // Check if request is from CLI
+    if (redirect_port) {
       return res.redirect(
-        `http://localhost:9876/callback?access_token=${accessToken}&refresh_token=${refreshToken}&username=${user.username}&role=${user.role}&state=${state}`,
+        `http://localhost:${redirect_port}/callback?access_token=${accessToken}&refresh_token=${refreshToken}&username=${user.username}&role=${user.role}`,
       );
     }
 
-    // Web portal flow — no code_verifier, redirect to web portal as before
-    return res.redirect(
-      `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
-    );
+    // Check if request is from browser
+    const acceptsHtml = req.headers.accept?.includes("text/html");
+    if (acceptsHtml) {
+      return res.redirect(
+        `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
+      );
+    }
+
+    // API request — return JSON
+    return res.status(200).json({
+      status: "success",
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      user: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar_url: user.avatar_url,
+      },
+    });
   } catch (err) {
     if (err.message === "ACCOUNT_INACTIVE") {
       return res
