@@ -50,7 +50,7 @@ export const handleGithubCallback = async (req, res) => {
         sameSite: "lax",
       });
 
-      return res.redirect(`http://localhost:3000/dashboard`);
+      return res.redirect(`https://insighta-web-vert.vercel.app/dashboard`);
     }
 
     // CLI — return JSON
