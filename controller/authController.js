@@ -28,14 +28,14 @@ export const handleGithubCallback = async (req, res) => {
 
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: "production",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 3 * 60 * 1000,
       sameSite: "strict",
     });
 
     res.cookie("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: "production",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 5 * 60 * 1000,
       sameSite: "strict",
     });
