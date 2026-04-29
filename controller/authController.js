@@ -18,10 +18,8 @@ export const handleGithubCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
 
-    if (!code || !state) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Missing code or state" });
+    if (!code) {
+      return res.status(400).json({ status: "error", message: "Missing code" });
     }
 
     const { user, accessToken, refreshToken } = await handlecallback(
@@ -29,17 +27,14 @@ export const handleGithubCallback = async (req, res) => {
       state,
     );
 
-    // Check if request is from browser or CLI
     const acceptsHtml = req.headers.accept?.includes("text/html");
 
     if (acceptsHtml) {
-      // Browser — redirect to Next.js callback route to set cookies
       return res.redirect(
-        `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`
+        `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
       );
     }
 
-    // CLI — return JSON
     return res.status(200).json({
       status: "success",
       access_token: accessToken,
@@ -57,6 +52,7 @@ export const handleGithubCallback = async (req, res) => {
         .status(403)
         .json({ status: "error", message: "Account is deactivated" });
     }
+
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
