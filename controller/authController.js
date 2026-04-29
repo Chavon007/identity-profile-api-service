@@ -122,3 +122,15 @@ export const logout = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+
+export const getMe = (req, res) => {
+  return res.status(200).json({
+    status: "success",
+    data: {
+      username: req.user.username,
+      email: req.user.email,
+      role: req.user.role,
+      avatar_url: req.user.avatar_url,
+    },
+  });
+};
