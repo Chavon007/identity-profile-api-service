@@ -1,5 +1,4 @@
 import Csrf from "csrf";
-
 import {
   getGithubRedirectUrl,
   handlecallback,
@@ -30,27 +29,14 @@ export const handleGithubCallback = async (req, res) => {
       state,
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
-
     // Check if request is from browser or CLI
     const acceptsHtml = req.headers.accept?.includes("text/html");
 
     if (acceptsHtml) {
-      res.cookie("token", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 3 * 60 * 1000,
-        sameSite: "none",
-      });
-
-      res.cookie("refresh_token", refreshToken, {
-        httpOnly: true,
-         secure: process.env.NODE_ENV === "production",
-        maxAge: 5 * 60 * 1000,
-        sameSite: "none",
-      });
-
-      return res.redirect(`https://insighta-web-vert.vercel.app/dashboard`);
+      // Browser — redirect to Next.js callback route to set cookies
+      return res.redirect(
+        `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`
+      );
     }
 
     // CLI — return JSON
@@ -89,7 +75,7 @@ export const refreshToken = async (req, res) => {
 
     res.cookie("token", accessToken, {
       httpOnly: true,
-       secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 3 * 60 * 1000,
       sameSite: "none",
     });
@@ -127,6 +113,7 @@ export const getCsrfToken = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+
 export const logout = async (req, res) => {
   try {
     const token = req.body.refresh_token || req.cookies.refresh_token;
