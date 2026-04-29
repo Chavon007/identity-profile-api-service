@@ -110,7 +110,7 @@ export const getAllProfile = async (req, res) => {
       sort_by,
       order,
       probability,
-      total_page,
+      total_pages,
       link,
       min_country_probability,
       page = 1,
@@ -177,7 +177,7 @@ export const getAllProfile = async (req, res) => {
       created_at: profile.created_at,
     }));
 
-    const totalPage = Math.ceil(total / limitNum);
+    const totalPages = Math.ceil(total / limitNum);
     const baseUrl = `/api/profiles`;
     const buildUrl = (p) => `${baseUrl}?page=${p}&limit=${limitNum}`;
 
@@ -186,7 +186,7 @@ export const getAllProfile = async (req, res) => {
       page: pageNum,
       limit: limitNum,
       total,
-      total_page: totalPage,
+      total_pages: totalPages,
       link: {
         self: buildUrl(pageNum),
         next: pageNum < totalPages ? buildUrl(pageNum + 1) : null,

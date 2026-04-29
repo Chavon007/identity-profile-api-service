@@ -1,9 +1,13 @@
+import Csrf from "csrf";
+
 import {
   getGithubRedirectUrl,
   handlecallback,
   refresh,
   logoutUser,
 } from "../service/authService.js";
+
+const csrf = new Csrf();
 
 export const redirectToGitHub = (req, res) => {
   const { code_challenge, code_challenge_method } = req.query;
@@ -18,7 +22,7 @@ export const handleGithubCallback = async (req, res) => {
     if (!code || !state) {
       return res
         .status(400)
-        .json({ status: "error", message: " Missing code or state" });
+        .json({ status: "error", message: "Missing code or state" });
     }
 
     const { user, accessToken, refreshToken } = await handlecallback(
@@ -26,20 +30,30 @@ export const handleGithubCallback = async (req, res) => {
       state,
     );
 
-    res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 3 * 60 * 1000,
-      sameSite: "strict",
-    });
+    const isProduction = process.env.NODE_ENV === "production";
 
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 5 * 60 * 1000,
-      sameSite: "strict",
-    });
+    // Check if request is from browser or CLI
+    const acceptsHtml = req.headers.accept?.includes("text/html");
 
+    if (acceptsHtml) {
+      res.cookie("token", accessToken, {
+        httpOnly: true,
+        secure: false,
+        maxAge: 3 * 60 * 1000,
+        sameSite: "lax",
+      });
+
+      res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        maxAge: 5 * 60 * 1000,
+        sameSite: "lax",
+      });
+
+      return res.redirect(`http://localhost:3000/dashboard`);
+    }
+
+    // CLI — return JSON
     return res.status(200).json({
       status: "success",
       access_token: accessToken,
@@ -97,6 +111,22 @@ export const refreshToken = async (req, res) => {
   }
 };
 
+export const getCsrfToken = async (req, res) => {
+  try {
+    const secret = await csrf.secret();
+    const token = csrf.create(secret);
+
+    res.cookie("csrf_secret", secret, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({ csrfToken: token });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
 export const logout = async (req, res) => {
   try {
     const token = req.body.refresh_token || req.cookies.refresh_token;
@@ -112,4 +142,16 @@ export const logout = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });
   }
+};
+
+export const getMe = (req, res) => {
+  return res.status(200).json({
+    status: "success",
+    data: {
+      username: req.user.username,
+      email: req.user.email,
+      role: req.user.role,
+      avatar_url: req.user.avatar_url,
+    },
+  });
 };
