@@ -5,14 +5,18 @@ import {
   refreshToken,
   logout,
   getMe,
+  getCsrfToken,
 } from "../controller/authController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { csrfMiddleware } from "../middleware/csrfMiddleware.js";
+
 const router = express.Router();
 
 router.get("/github", redirectToGitHub);
 router.get("/github/callback", handleGithubCallback);
-router.post("/refresh", refreshToken);
+router.get("/csrf-token", getCsrfToken);
 router.get("/me", authMiddleware, getMe);
-router.post("/logout", logout);
+router.post("/refresh", csrfMiddleware, refreshToken);
+router.post("/logout", csrfMiddleware, logout);
 
 export default router;

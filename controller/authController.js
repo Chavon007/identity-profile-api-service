@@ -1,9 +1,13 @@
+import Csrf from "csrf";
+
 import {
   getGithubRedirectUrl,
   handlecallback,
   refresh,
   logoutUser,
 } from "../service/authService.js";
+
+const csrf = new Csrf();
 
 export const redirectToGitHub = (req, res) => {
   const { code_challenge, code_challenge_method } = req.query;
@@ -106,6 +110,22 @@ export const refreshToken = async (req, res) => {
   }
 };
 
+export const getCsrfToken = async (req, res) => {
+  try {
+    const secret = await csrf.secret();
+    const token = csrf.create(secret);
+
+    res.cookie("csrf_secret", secret, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({ csrfToken: token });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
 export const logout = async (req, res) => {
   try {
     const token = req.body.refresh_token || req.cookies.refresh_token;
