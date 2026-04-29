@@ -9,8 +9,8 @@ import {
 const csrf = new Csrf();
 
 export const redirectToGitHub = (req, res) => {
-  const { code_challenge, code_challenge_method } = req.query;
-  const { url } = getGithubRedirectUrl(code_challenge, code_challenge_method);
+  const { code_challenge, code_challenge_method, state } = req.query;
+  const { url } = getGithubRedirectUrl(code_challenge, code_challenge_method, state);
   res.redirect(url);
 };
 

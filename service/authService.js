@@ -12,15 +12,20 @@ import refreshTokenModel from "../model/refreshTokenModel.js";
 dotenv.config();
 const stateStore = new Map();
 
-export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
-  const state = crypto.randomBytes(16).toString("hex");
-  stateStore.set(state, true);
+export const getGithubRedirectUrl = (
+  code_challenge,
+  code_challenge_method,
+  state,
+) => {
+  // Use CLI's state if provided, otherwise generate one
+  const finalState = state || crypto.randomBytes(16).toString("hex");
+  stateStore.set(finalState, true);
 
   const params = new URLSearchParams({
     client_id: process.env.CLIENT_ID,
     redirect_uri: process.env.CALLBACK_URL,
     scope: "user:email",
-    state,
+    state: finalState,
   });
 
   if (code_challenge && code_challenge_method) {
@@ -30,7 +35,7 @@ export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
 
   return {
     url: `https://github.com/login/oauth/authorize?${params.toString()}`,
-    state,
+    state: finalState,
   };
 };
 
@@ -149,7 +154,7 @@ export const refresh = async (token) => {
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
 
-  return { accessToken, refreshToken: newRefreshToken }; 
+  return { accessToken, refreshToken: newRefreshToken };
 };
 
 export const logoutUser = async (token) => {
