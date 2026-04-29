@@ -31,7 +31,7 @@ export const handleGithubCallback = async (req, res) => {
     // CLI flow — code_verifier present, redirect tokens back to local CLI server
     if (code_verifier) {
       return res.redirect(
-        `http://localhost:9876/callback?access_token=${accessToken}&refresh_token=${refreshToken}&username=${user.username}&role=${user.role}`
+        `http://localhost:9876/callback?access_token=${accessToken}&refresh_token=${refreshToken}&username=${user.username}&role=${user.role}&state=${state}`,
       );
     }
 
@@ -39,7 +39,6 @@ export const handleGithubCallback = async (req, res) => {
     return res.redirect(
       `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
     );
-
   } catch (err) {
     if (err.message === "ACCOUNT_INACTIVE") {
       return res
