@@ -110,8 +110,6 @@ export const getAllProfile = async (req, res) => {
       sort_by,
       order,
       probability,
-      total_pages,
-      link,
       min_country_probability,
       page = 1,
       limit = 10,
@@ -152,19 +150,19 @@ export const getAllProfile = async (req, res) => {
     const sortObj = { [sortedFields]: sortOrder };
 
     // pagination
-
-    const pageNum = Math.max(1, Number(page));
+    const pageNum = Math.max(1, Number(page)));
     const limitNum = Math.min(50, Math.max(1, Number(limit)));
     const skips = (pageNum - 1) * limitNum;
 
     const total = await profileModel.countDocuments(query);
-    const getProfile = await profileModel
+
+    const profiles = await profileModel
       .find(query)
       .sort(sortObj)
       .skip(skips)
       .limit(limitNum);
 
-    const formatted = getProfile.map((profile) => ({
+    const formatted = profiles.map((profile) => ({
       id: profile.id,
       name: profile.name,
       gender: profile.gender,
