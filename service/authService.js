@@ -34,13 +34,14 @@ export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
   };
 };
 
-export const handlecallback = async (code, state) => {
-  if (!stateStore.has(state)) {
+export const handlecallback = async (code, state, code_verifier) => {
+  // Web flow: state was generated server-side, validate it
+  // CLI flow: state was generated client-side (not in stateStore), skip if code_verifier present
+  if (state && stateStore.has(state)) {
+    stateStore.delete(state);
+  } else if (!code_verifier) {
     throw new Error("Invalid state parameter");
   }
-  stateStore.delete(state);
-
-  //   exchange code with access token
 
   const tokenResponse = await axios.post(
     "https://github.com/login/oauth/access_token",
@@ -54,13 +55,16 @@ export const handlecallback = async (code, state) => {
       headers: { Accept: "application/json" },
     },
   );
+
   const gitHubAccessToken = tokenResponse.data.access_token;
-  //   get user info from github
+
+  if (!gitHubAccessToken) {
+    throw new Error("Failed to obtain GitHub access token");
+  }
+
   const userResponse = await axios.get("https://api.github.com/user", {
     headers: { Authorization: `Bearer ${gitHubAccessToken}` },
   });
-
-  //   get email if not public
 
   let email = userResponse.data.email;
   if (!email) {
@@ -79,7 +83,6 @@ export const handlecallback = async (code, state) => {
 
   const githubUser = userResponse.data;
 
-  //   upsert user
   let user = await userModel.findOne({ github_id: String(githubUser.id) });
 
   if (!user) {
@@ -100,11 +103,8 @@ export const handlecallback = async (code, state) => {
     throw new Error("ACCOUNT_INACTIVE");
   }
 
-  //   Generate token for user
   const accessToken = generateToken(user);
   const newRefreshToken = generateRefreshToken(user);
-
-  //   hash and store refresh token
 
   const hashed = crypto
     .createHash("sha256")
@@ -127,15 +127,13 @@ export const refresh = async (token) => {
   const hashed = crypto.createHash("sha256").update(token).digest("hex");
   const stored = await refreshTokenModel.findOne({ token_hashed: hashed });
 
-  if (!stored) throw new Error("Refresh token not found or already in used");
+  if (!stored) throw new Error("Refresh token not found or already used");
 
   await refreshTokenModel.deleteOne({ _id: stored._id });
 
   const user = await userModel.findById(decoded.id);
 
   if (!user || !user.is_active) throw new Error("User not found or inactive");
-
-  //   isssue new pair
 
   const accessToken = generateToken(user);
   const newRefreshToken = generateRefreshToken(user);
@@ -151,11 +149,11 @@ export const refresh = async (token) => {
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
 
-  return { accessToken, refresh: newRefreshToken };
+  return { accessToken, refreshToken: newRefreshToken }; 
 };
 
 export const logoutUser = async (token) => {
-  if (!token) throw new Error("No refresh token Provided");
+  if (!token) throw new Error("No refresh token provided");
 
   const hashed = crypto.createHash("sha256").update(token).digest("hex");
   await refreshTokenModel.deleteOne({ token_hashed: hashed });
