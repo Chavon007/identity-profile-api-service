@@ -38,16 +38,16 @@ export const handleGithubCallback = async (req, res) => {
     if (acceptsHtml) {
       res.cookie("token", accessToken, {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         maxAge: 3 * 60 * 1000,
-        sameSite: "lax",
+        sameSite: "none",
       });
 
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: false,
+         secure: process.env.NODE_ENV === "production",
         maxAge: 5 * 60 * 1000,
-        sameSite: "lax",
+        sameSite: "none",
       });
 
       return res.redirect(`https://insighta-web-vert.vercel.app/dashboard`);
@@ -89,16 +89,16 @@ export const refreshToken = async (req, res) => {
 
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: true,
+       secure: process.env.NODE_ENV === "production",
       maxAge: 3 * 60 * 1000,
-      sameSite: "strict",
+      sameSite: "none",
     });
 
     res.cookie("refresh_token", newRefreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: 5 * 60 * 1000,
-      sameSite: "strict",
+      sameSite: "none",
     });
 
     return res.status(200).json({
