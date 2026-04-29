@@ -18,7 +18,7 @@ export const handleGithubCallback = async (req, res) => {
     if (!code || !state) {
       return res
         .status(400)
-        .json({ status: "error", message: " Missing code or state" });
+        .json({ status: "error", message: "Missing code or state" });
     }
 
     const { user, accessToken, refreshToken } = await handlecallback(
@@ -40,6 +40,15 @@ export const handleGithubCallback = async (req, res) => {
       sameSite: "strict",
     });
 
+    // Check if request is from browser or CLI
+    const acceptsHtml = req.headers.accept?.includes("text/html");
+
+    if (acceptsHtml) {
+      // Browser — redirect to dashboard
+      return res.redirect(`${process.env.WEB_URL}/dashboard`);
+    }
+
+    // CLI — return JSON as before
     return res.status(200).json({
       status: "success",
       access_token: accessToken,
