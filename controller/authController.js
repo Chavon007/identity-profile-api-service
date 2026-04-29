@@ -30,29 +30,30 @@ export const handleGithubCallback = async (req, res) => {
       state,
     );
 
-    res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 3 * 60 * 1000,
-      sameSite: "strict",
-    });
-
-    res.cookie("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 5 * 60 * 1000,
-      sameSite: "strict",
-    });
+    const isProduction = process.env.NODE_ENV === "production";
 
     // Check if request is from browser or CLI
     const acceptsHtml = req.headers.accept?.includes("text/html");
 
     if (acceptsHtml) {
-      // Browser — redirect to dashboard
-      return res.redirect(`${process.env.WEB_URL}/dashboard`);
+      res.cookie("token", accessToken, {
+        httpOnly: true,
+        secure: false,
+        maxAge: 3 * 60 * 1000,
+        sameSite: "lax",
+      });
+
+      res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        maxAge: 5 * 60 * 1000,
+        sameSite: "lax",
+      });
+
+      return res.redirect(`http://localhost:3000/dashboard`);
     }
 
-    // CLI — return JSON as before
+    // CLI — return JSON
     return res.status(200).json({
       status: "success",
       access_token: accessToken,
