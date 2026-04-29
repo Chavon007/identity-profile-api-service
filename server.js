@@ -14,7 +14,7 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://insighta-web-vert.vercel.app",
+      origin: "https://insighta-web-vert.vercel.app",
     credentials: true,
   }),
 );
