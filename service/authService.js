@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
 import userModel from "../model/userModel.js";
@@ -10,22 +11,20 @@ import {
 import refreshTokenModel from "../model/refreshTokenModel.js";
 
 dotenv.config();
-const stateStore = new Map();
 
-export const getGithubRedirectUrl = (
-  code_challenge,
-  code_challenge_method,
-  state,
-) => {
-  // Use CLI's state if provided, otherwise generate one
-  const finalState = state || crypto.randomBytes(16).toString("hex");
-  stateStore.set(finalState, true);
+export const getGithubRedirectUrl = (code_challenge, code_challenge_method) => {
+  // Sign state as JWT instead of storing in Map
+  const state = jwt.sign(
+    { rand: crypto.randomBytes(16).toString("hex") },
+    process.env.JWT_SECRET,
+    { expiresIn: "10m" }
+  );
 
   const params = new URLSearchParams({
     client_id: process.env.CLIENT_ID,
     redirect_uri: process.env.CALLBACK_URL,
     scope: "user:email",
-    state: finalState,
+    state,
   });
 
   if (code_challenge && code_challenge_method) {
@@ -35,19 +34,19 @@ export const getGithubRedirectUrl = (
 
   return {
     url: `https://github.com/login/oauth/authorize?${params.toString()}`,
-    state: finalState,
+    state,
   };
 };
 
-export const handlecallback = async (code, state, code_verifier) => {
-  // Web flow: state was generated server-side, validate it
-  // CLI flow: state was generated client-side (not in stateStore), skip if code_verifier present
-  if (state && stateStore.has(state)) {
-    stateStore.delete(state);
-  } else if (!code_verifier) {
+export const handlecallback = async (code, state) => {
+  // Verify state as JWT
+  try {
+    jwt.verify(state, process.env.JWT_SECRET);
+  } catch (err) {
     throw new Error("Invalid state parameter");
   }
 
+  // Exchange code with access token
   const tokenResponse = await axios.post(
     "https://github.com/login/oauth/access_token",
     {
@@ -63,14 +62,12 @@ export const handlecallback = async (code, state, code_verifier) => {
 
   const gitHubAccessToken = tokenResponse.data.access_token;
 
-  if (!gitHubAccessToken) {
-    throw new Error("Failed to obtain GitHub access token");
-  }
-
+  // Get user info from github
   const userResponse = await axios.get("https://api.github.com/user", {
     headers: { Authorization: `Bearer ${gitHubAccessToken}` },
   });
 
+  // Get email if not public
   let email = userResponse.data.email;
   if (!email) {
     const emailResponse = await axios.get(
@@ -88,6 +85,7 @@ export const handlecallback = async (code, state, code_verifier) => {
 
   const githubUser = userResponse.data;
 
+  // Upsert user
   let user = await userModel.findOne({ github_id: String(githubUser.id) });
 
   if (!user) {
@@ -108,9 +106,11 @@ export const handlecallback = async (code, state, code_verifier) => {
     throw new Error("ACCOUNT_INACTIVE");
   }
 
+  // Generate tokens for user
   const accessToken = generateToken(user);
   const newRefreshToken = generateRefreshToken(user);
 
+  // Hash and store refresh token
   const hashed = crypto
     .createHash("sha256")
     .update(newRefreshToken)
@@ -132,7 +132,7 @@ export const refresh = async (token) => {
   const hashed = crypto.createHash("sha256").update(token).digest("hex");
   const stored = await refreshTokenModel.findOne({ token_hashed: hashed });
 
-  if (!stored) throw new Error("Refresh token not found or already used");
+  if (!stored) throw new Error("Refresh token not found or already in used");
 
   await refreshTokenModel.deleteOne({ _id: stored._id });
 
@@ -140,6 +140,7 @@ export const refresh = async (token) => {
 
   if (!user || !user.is_active) throw new Error("User not found or inactive");
 
+  // Issue new pair
   const accessToken = generateToken(user);
   const newRefreshToken = generateRefreshToken(user);
 
@@ -154,11 +155,11 @@ export const refresh = async (token) => {
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
 
-  return { accessToken, refreshToken: newRefreshToken };
+  return { accessToken, refresh: newRefreshToken };
 };
 
 export const logoutUser = async (token) => {
-  if (!token) throw new Error("No refresh token provided");
+  if (!token) throw new Error("No refresh token Provided");
 
   const hashed = crypto.createHash("sha256").update(token).digest("hex");
   await refreshTokenModel.deleteOne({ token_hashed: hashed });
