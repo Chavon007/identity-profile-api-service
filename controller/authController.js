@@ -16,15 +16,17 @@ export const redirectToGitHub = (req, res) => {
 
 export const handleGithubCallback = async (req, res) => {
   try {
-    const { code, state } = req.query;
+    const { code, state, code_verifier } = req.query; 
 
     if (!code) {
       return res.status(400).json({ status: "error", message: "Missing code" });
     }
 
+  
     const { user, accessToken, refreshToken } = await handlecallback(
       code,
       state,
+      code_verifier,
     );
 
     const acceptsHtml = req.headers.accept?.includes("text/html");
@@ -52,7 +54,6 @@ export const handleGithubCallback = async (req, res) => {
         .status(403)
         .json({ status: "error", message: "Account is deactivated" });
     }
-
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
