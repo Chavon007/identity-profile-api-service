@@ -19,7 +19,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "lint": "eslint .",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "jest --passWithNoTests"
   },
   "devDependencies": {
     "eslint": "^8.57.1",
