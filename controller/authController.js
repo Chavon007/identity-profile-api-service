@@ -16,38 +16,30 @@ export const redirectToGitHub = (req, res) => {
 
 export const handleGithubCallback = async (req, res) => {
   try {
-    const { code, state, code_verifier } = req.query; 
+    const { code, state, code_verifier } = req.query;
 
     if (!code) {
       return res.status(400).json({ status: "error", message: "Missing code" });
     }
 
-  
     const { user, accessToken, refreshToken } = await handlecallback(
       code,
       state,
       code_verifier,
     );
 
-    const acceptsHtml = req.headers.accept?.includes("text/html");
-
-    if (acceptsHtml) {
+    // CLI flow — code_verifier present, redirect tokens back to local CLI server
+    if (code_verifier) {
       return res.redirect(
-        `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
+        `http://localhost:9876/callback?access_token=${accessToken}&refresh_token=${refreshToken}&username=${user.username}&role=${user.role}`
       );
     }
 
-    return res.status(200).json({
-      status: "success",
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      user: {
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar_url: user.avatar_url,
-      },
-    });
+    // Web portal flow — no code_verifier, redirect to web portal as before
+    return res.redirect(
+      `https://insighta-web-vert.vercel.app/api/auth/callback?token=${accessToken}&refresh_token=${refreshToken}`,
+    );
+
   } catch (err) {
     if (err.message === "ACCOUNT_INACTIVE") {
       return res
